@@ -1,0 +1,21 @@
+services:
+  # 🔹 Build AWS RTSP image (no container runs)
+  kvs-rtsp-image:
+    build: ./amazon-kinesis-video-streams-demos/producer-cpp/docker-rtsp
+    image: rtspdockertest
+    profiles: ["build-only"]   # optional: won't try to run as container
+
+  # 🔹 FastAPI controller
+  fastapi:
+    build: .
+    image: fastapi-stream-controller
+    container_name: fastapi-stream-api
+    ports:
+      - "8001:8001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: us-east-1
+    restart: always

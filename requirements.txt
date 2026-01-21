@@ -1,0 +1,6 @@
+docker
+boto3
+fastapi
+uvicorn
+pydantic
+
