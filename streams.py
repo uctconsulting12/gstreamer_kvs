@@ -1,94 +1,9 @@
-# import subprocess
-# import boto3
-# from botocore.exceptions import BotoCoreError, ClientError
-# from fastapi import FastAPI,HTTPException
-
-# IMAGE = "rtspdockertest"
-
-# def start_stream(stream_name: str, rtsp_url: str):
-#     # Check if container already exists
-#     existing = subprocess.run(
-#         ["docker", "ps", "-a", "--format", "{{.Names}}"],
-#         capture_output=True,
-#         text=True
-#     ).stdout.splitlines()
-
-#     if stream_name in existing:
-#         return {"error": "stream already running"}
-
-#     cmd = [
-#         "docker", "run", "-d",
-#         "--restart", "unless-stopped",
-#         "--name", stream_name,
-#         "-e", "AWS_ACCESS_KEY_ID=AKIAXZ54I5RQYZBJETZL",
-#         "-e", "AWS_SECRET_ACCESS_KEY=aTDPjP+ouXqCo0ubI6D7rgM/E4ifrh6guJ9ZHTBf",
-#         "-e", "AWS_DEFAULT_REGION=us-east-1",
-#         IMAGE,
-#         "./kvs_gstreamer_sample",
-#         stream_name,
-#         rtsp_url
-#     ]
-
-#     subprocess.run(cmd, check=True)
-#     return {"status": "started", "stream": stream_name}
-
-# def stop_stream(stream_name: str):
-#     subprocess.run(["docker", "rm", "-f", stream_name])
-#     return {"status": "stopped", "stream": stream_name}
-
-# def list_streams():
-#     result = subprocess.check_output(
-#         ["docker", "ps", "--format", "{{.Names}}"]
-#     )
-#     return result.decode().splitlines()
-
-
-
-
-# def get_hls_url(stream_name: str):
-#     try:
-#         # 1. Create Kinesis Video client
-#         kv_client = boto3.client(
-#             "kinesisvideo",
-#             region_name="us-east-1"
-#         )
-
-#         # 2. Get data endpoint for HLS
-#         endpoint_response = kv_client.get_data_endpoint(
-#             StreamName=stream_name,
-#             APIName="GET_HLS_STREAMING_SESSION_URL"
-#         )
-
-#         data_endpoint = endpoint_response["DataEndpoint"]
-
-#         # 3. Create archived media client
-#         archived_media_client = boto3.client(
-#             "kinesis-video-archived-media",
-#             endpoint_url=data_endpoint,
-#             region_name="us-east-1"
-#         )
-
-#         # 4. Request HLS streaming session URL
-#         hls_response = archived_media_client.get_hls_streaming_session_url(
-#             StreamName=stream_name,
-#             PlaybackMode="LIVE",
-#             Expires= 43200,
-#             ContainerFormat="FRAGMENTED_MP4"
-#         )
-
-#         return hls_response["HLSStreamingSessionURL"]
-
-#     except (BotoCoreError, ClientError) as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
- 
-
-
 import os
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException
-import docker  # Make sure 'docker' is in requirements.txt
+import docker  
+from docker.errors import NotFound, DockerException
 
 IMAGE = "rtspdockertest"
 
@@ -100,13 +15,17 @@ else:  # Linux / Mac
 
 
 def start_stream(stream_name: str, rtsp_url: str):
-    # Check if container already exists
-    existing = [c.name for c in client.containers.list(all=True)]
-    if stream_name in existing:
-        return {"error": "stream already running"}
+    # If container exists, stop & remove it
+    try:
+        existing = client.containers.get(stream_name)
+        if existing.status == "running":
+            existing.stop()
+        existing.remove(force=True)
+    except NotFound:
+        pass  # container does not exist, continue
 
     try:
-        container = client.containers.run(
+        client.containers.run(
             IMAGE,
             ["./kvs_gstreamer_sample", stream_name, rtsp_url],
             detach=True,
@@ -119,7 +38,8 @@ def start_stream(stream_name: str, rtsp_url: str):
             },
         )
         return {"status": "started", "stream": stream_name}
-    except docker.errors.DockerException as e:
+
+    except DockerException as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 

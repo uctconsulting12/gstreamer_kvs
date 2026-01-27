@@ -3,7 +3,6 @@ services:
   kvs-rtsp-image:
     build: ./amazon-kinesis-video-streams-demos/producer-cpp/docker-rtsp
     image: rtspdockertest
-    profiles: ["build-only"]   # optional: won't try to run as container
 
   # 🔹 FastAPI controller
   fastapi:

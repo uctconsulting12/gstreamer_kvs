@@ -2,8 +2,17 @@ from fastapi import FastAPI,HTTPException
 from streams import start_stream, stop_stream, list_streams,get_hls_url
 from pydantic import BaseModel
 import time
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 
@@ -22,7 +31,7 @@ def start_stream_endpoint(data: StreamStartRequest):
         rtsp_url=data.rtsp_url
     )
 
-    time.sleep(10)
+    time.sleep(15)
     return stream_started
 
 @app.post("/streams/stop/{stream_name}")

@@ -1,0 +1,34 @@
+name: Deploy to EC2 (Docker Compose)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "---- Pulling latest code ----"
+
+            if [ ! -d ~/gstreamer_kvs ]; then
+              git clone https://github.com/uctconsulting12/gstreamer_kvs.git ~/gstreamer_kvs
+            else
+              cd ~/gstreamer_kvs
+              git pull origin main
+            fi
+
+            cd ~/gstreamer_kvs
+
+            echo "---- Running docker-compose ----"
+            docker compose down
+            docker compose up -d --build
+
+            echo "Deployment completed."
