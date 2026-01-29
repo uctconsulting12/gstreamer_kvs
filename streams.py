@@ -136,25 +136,44 @@ def list_streams():
 # =========================================================
 def get_hls_url(stream_name: str):
     try:
-        kv = boto3.client("kinesisvideo", region_name="us-east-1")
+        kv_client = boto3.client("kinesisvideo", region_name="us-east-1")
 
-        endpoint = kv.get_data_endpoint(
+        endpoint_response = kv_client.get_data_endpoint(
             StreamName=stream_name,
             APIName="GET_HLS_STREAMING_SESSION_URL"
-        )["DataEndpoint"]
+        )
 
-        archived = boto3.client(
+        archived_media_client = boto3.client(
             "kinesis-video-archived-media",
-            endpoint_url=endpoint,
+            endpoint_url=endpoint_response["DataEndpoint"],
             region_name="us-east-1"
         )
 
-        return archived.get_hls_streaming_session_url(
+        hls_response = archived_media_client.get_hls_streaming_session_url(
             StreamName=stream_name,
             PlaybackMode="LIVE",
             Expires=43200,
             ContainerFormat="FRAGMENTED_MP4"
-        )["HLSStreamingSessionURL"]
+        )
 
-    except (BotoCoreError, ClientError) as e:
-        raise HTTPException(500, str(e))
+        return hls_response["HLSStreamingSessionURL"]
+
+    except ClientError as e:
+        error_code = e.response["Error"]["Code"]
+
+        if error_code == "ResourceNotFoundException":
+            raise HTTPException(status_code=404, detail="Stream not found")
+
+        if error_code in ("InvalidArgumentException", "ResourceInUseException"):
+            raise HTTPException(
+                status_code=409,
+                detail="HLS not available yet. Stream may be inactive."
+            )
+
+        if error_code == "AccessDeniedException":
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        raise HTTPException(status_code=500, detail=str(e))
+
+    except BotoCoreError as e:
+        raise HTTPException(status_code=502, detail="AWS communication error")
