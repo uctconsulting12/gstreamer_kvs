@@ -1,10 +1,10 @@
 services:
-  # 🔹 Build AWS RTSP image (no container runs)
+  # Build AWS RTSP image (no container runs)
   kvs-rtsp-image:
     build: ./amazon-kinesis-video-streams-demos/producer-cpp/docker-rtsp
     image: rtspdockertest
 
-  # 🔹 FastAPI controller
+  # FastAPI controller
   fastapi:
     build: .
     image: fastapi-stream-controller
