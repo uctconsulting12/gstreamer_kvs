@@ -58,7 +58,7 @@ async def start_stream(stream_name: str, rtsp_url: str):
     async with _global_lock, stream_lock:
         rtsp_container_name, rtsp_container = _find_rtsp_container(rtsp_url)
 
-        # ❌ RTSP already used by another stream
+        # RTSP already used by another stream
         if rtsp_container_name and rtsp_container_name != stream_name:
             return {
                 "status": "blocked",

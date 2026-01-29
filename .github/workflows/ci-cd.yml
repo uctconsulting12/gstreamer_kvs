@@ -22,6 +22,7 @@ jobs:
               git clone https://github.com/uctconsulting12/gstreamer_kvs.git ~/gstreamer_kvs
             else
               cd ~/gstreamer_kvs
+              git stash
               git pull origin main
             fi
 
