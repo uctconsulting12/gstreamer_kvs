@@ -1,1 +1,31 @@
+# Never send secrets in build context
 .env
+.env.*
+!.env.example
+
+# Git + editor metadata
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Python virtualenv/cache/build artifacts
+Genv/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Local runtime files
+*.log
+
+# Large folder not needed by FastAPI image build
+amazon-kinesis-video-streams-demos/
