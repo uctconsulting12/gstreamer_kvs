@@ -4,11 +4,34 @@ services:
     build: ./amazon-kinesis-video-streams-demos/producer-cpp/docker-rtsp
     image: rtspdockertest
 
+  postgres:
+    image: postgres:16
+    container_name: stream-state-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
   # FastAPI controller
   fastapi:
     build: .
     image: fastapi-stream-controller
     container_name: fastapi-stream-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kvs-rtsp-image:
+        condition: service_started
     ports:
       - "8001:8001"
     volumes:
@@ -16,5 +39,9 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      DATABASE_URL: ${DATABASE_URL}
     restart: always
+
+volumes:
+  postgres_data:
