@@ -53,7 +53,7 @@ class CameraStream(BaseModel):
     stream_name: str
     rtsp_url: str
 
-
+# Start multiple streams in batch
 class BatchStreamStartRequest(BaseModel):
     user_id: str
     streams: list[CameraStream]
@@ -75,7 +75,7 @@ class BatchStreamStartRequest(BaseModel):
             raise ValueError("maximum 20 streams per request")
         return v
 
-
+# Start a single stream
 @app.post("/streams/start")
 async def start_stream_endpoint(data: StreamStartRequest):
     return await start_stream(
@@ -84,7 +84,7 @@ async def start_stream_endpoint(data: StreamStartRequest):
         rtsp_url=data.rtsp_url,
     )
 
-
+# Start multiple streams in batch
 @app.post("/streams/start/batch")
 async def start_streams_batch_endpoint(data: BatchStreamStartRequest):
     stream_payload = [

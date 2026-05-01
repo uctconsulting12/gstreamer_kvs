@@ -56,7 +56,7 @@ def _get_user_worker_lock(user_id: str) -> asyncio.Lock:
         _user_worker_locks[user_id] = asyncio.Lock()
     return _user_worker_locks[user_id]
 
-
+# Find RTSP container
 def _find_rtsp_container(rtsp_url: str):
     """Returns (container_name, container) if RTSP is already used"""
     for c in client.containers.list():
