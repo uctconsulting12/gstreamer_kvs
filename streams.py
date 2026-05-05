@@ -24,6 +24,18 @@ JOB_TIMEOUT_SECONDS = 45
 
 AWS_REGION = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
 
+# kvs_gstreamer_sample forwards these to kvssink. fragment-duration is ms;
+# buffer-duration is seconds — keep it >= fragment length for stable ingest.
+KVS_GSTREAMER_EXTRA_ARGS: tuple[str, ...] = (
+    "fragment-duration=10000",
+    "buffer-duration=10",
+)
+
+
+def _kvs_gstreamer_shell_invocation(stream_id: str, rtsp_url: str) -> str:
+    parts = ["./kvs_gstreamer_sample", stream_id, rtsp_url, *KVS_GSTREAMER_EXTRA_ARGS]
+    return " ".join(shlex.quote(p) for p in parts)
+
 
 # Docker client
 if os.name == "nt":
@@ -115,7 +127,12 @@ async def _start_container(stream_name: str, rtsp_url: str):
             await asyncio.to_thread(
                 client.containers.run,
                 IMAGE,
-                ["./kvs_gstreamer_sample", stream_name, rtsp_url],
+                [
+                    "./kvs_gstreamer_sample",
+                    stream_name,
+                    rtsp_url,
+                    *KVS_GSTREAMER_EXTRA_ARGS,
+                ],
                 detach=True,
                 name=stream_name,
                 restart_policy={"Name": "unless-stopped"},
@@ -177,7 +194,7 @@ async def _start_or_reload_user_worker(user_id: str, streams: list[tuple[str, st
             return {"status": "empty", "worker": worker_name}
 
         processes = [
-            f"./kvs_gstreamer_sample {shlex.quote(stream_id)} {shlex.quote(rtsp_url)} &"
+            f"{_kvs_gstreamer_shell_invocation(stream_id, rtsp_url)} &"
             for stream_id, rtsp_url in streams
         ]
 
